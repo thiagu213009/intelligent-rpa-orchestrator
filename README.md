@@ -31,4 +31,4 @@ User Request → Supervisor Agent → Routes to:
 4. streamlit run app.py
 
 ## Author
-Built as part of AI Engineer learning journey
+Built as part of AI Agent Demonstration
