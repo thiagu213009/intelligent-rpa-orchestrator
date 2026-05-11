@@ -1,12 +1,12 @@
 import streamlit as st
-import sys
+import requests
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from orchestrator import run_orchestrator
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Get API URL from environment (defaults to localhost)
+API_URL = os.environ.get("API_URL", "http://localhost:8000")
 
 # Page config
 st.set_page_config(
@@ -38,6 +38,13 @@ with st.sidebar:
     - £10k - £50k → Manager approval
     - £50k - £100k → CFO approval
     - Above £100k → Board approval
+    """)
+    
+    st.header("Architecture")
+    st.success(f"""
+    Streamlit UI → FastAPI → Orchestrator
+    
+    API: `{API_URL}`
     """)
     
     if st.button("Clear Conversation"):
@@ -77,28 +84,43 @@ if prompt := st.chat_input("Enter your business request..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Process request
+    # Process request via FastAPI
     with st.chat_message("assistant"):
         with st.spinner("Processing your request..."):
             
             st.session_state.thread_count += 1
             
-            # CLEAN — just calls orchestrator, no logic here
-            result = run_orchestrator(
-                prompt,
-                f"request-{st.session_state.thread_count}"
-            )
-
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.markdown(result["result"])
-            with col2:
-                agent_used = result.get("agent_used", "Unknown")
-                st.info(f"🤖 {agent_used}")
-
-    # Save assistant message
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": result["result"],
-        "agent": result.get("agent_used", "Unknown")
-    })
+            try:
+                # Call FastAPI instead of orchestrator directly
+                response = requests.post(
+                    f"{API_URL}/orchestrate",
+                    json={
+                        "request": prompt,
+                        "thread_id": f"request-{st.session_state.thread_count}"
+                    },
+                    timeout=60
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.markdown(result["result"])
+                    with col2:
+                        agent_used = result.get("agent_used", "Unknown")
+                        st.info(f"🤖 {agent_used}")
+                    
+                    # Save to history
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": result["result"],
+                        "agent": agent_used
+                    })
+                else:
+                    st.error(f"API Error: {response.status_code}")
+                    
+            except requests.exceptions.ConnectionError:
+                st.error("Cannot connect to API. Make sure FastAPI is running on port 8000.")
+            except Exception as e:
+                st.error(f"Error: {str(e)}")

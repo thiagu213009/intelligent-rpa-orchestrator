@@ -1,3 +1,12 @@
+---
+title: Intelligent RPA Orchestrator
+emoji: 🤖
+colorFrom: purple
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # Intelligent RPA Orchestrator
 
 An AI-powered business process orchestrator that combines 
@@ -32,3 +41,7 @@ User Request → Supervisor Agent → Routes to:
 
 ## Author
 Built as part of AI Agent Demonstration
+
+
+## Live Demo
+🚀 Try it live: https://thiagu213009-intelligent-rpa-orchestrator.hf.space
