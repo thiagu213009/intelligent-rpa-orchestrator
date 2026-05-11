@@ -5,8 +5,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Get API URL from environment (defaults to localhost)
+# Switch behaviour based on environment variable
+USE_API = os.environ.get("USE_API", "true").lower() == "true"
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
+
+# If not using API — import orchestrator directly
+if not USE_API:
+    from orchestrator import run_orchestrator
 
 # Page config
 st.set_page_config(
@@ -41,11 +46,20 @@ with st.sidebar:
     """)
     
     st.header("Architecture")
-    st.success(f"""
-    Streamlit UI → FastAPI → Orchestrator
-    
-    API: `{API_URL}`
-    """)
+    if USE_API:
+        st.success(f"""
+        **Decoupled Mode**
+        
+        UI → FastAPI → Orchestrator
+        
+        API: `{API_URL}`
+        """)
+    else:
+        st.success("""
+        **Direct Mode**
+        
+        UI → Orchestrator
+        """)
     
     if st.button("Clear Conversation"):
         st.session_state.messages = []
@@ -83,42 +97,44 @@ if prompt := st.chat_input("Enter your business request..."):
     
     with st.chat_message("user"):
         st.markdown(prompt)
-
-    # Process request via FastAPI
+    
     with st.chat_message("assistant"):
         with st.spinner("Processing your request..."):
             
             st.session_state.thread_count += 1
+            thread_id = f"request-{st.session_state.thread_count}"
             
             try:
-                # Call FastAPI instead of orchestrator directly
-                response = requests.post(
-                    f"{API_URL}/orchestrate",
-                    json={
-                        "request": prompt,
-                        "thread_id": f"request-{st.session_state.thread_count}"
-                    },
-                    timeout=60
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
+                if USE_API:
+                    # DECOUPLED MODE — call FastAPI
+                    response = requests.post(
+                        f"{API_URL}/orchestrate",
+                        json={"request": prompt, "thread_id": thread_id},
+                        timeout=60
+                    )
                     
-                    col1, col2 = st.columns([3, 1])
-                    with col1:
-                        st.markdown(result["result"])
-                    with col2:
-                        agent_used = result.get("agent_used", "Unknown")
-                        st.info(f"🤖 {agent_used}")
-                    
-                    # Save to history
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": result["result"],
-                        "agent": agent_used
-                    })
+                    if response.status_code == 200:
+                        result = response.json()
+                    else:
+                        st.error(f"API Error: {response.status_code}")
+                        st.stop()
                 else:
-                    st.error(f"API Error: {response.status_code}")
+                    # DIRECT MODE — call orchestrator directly
+                    result = run_orchestrator(prompt, thread_id)
+                
+                # Display result (same for both modes)
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(result["result"])
+                with col2:
+                    agent_used = result.get("agent_used", "Unknown")
+                    st.info(f"🤖 {agent_used}")
+                
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": result["result"],
+                    "agent": agent_used
+                })
                     
             except requests.exceptions.ConnectionError:
                 st.error("Cannot connect to API. Make sure FastAPI is running on port 8000.")
