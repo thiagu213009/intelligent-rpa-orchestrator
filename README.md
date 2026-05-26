@@ -43,5 +43,26 @@ User Request → Supervisor Agent → Routes to:
 Built as part of AI Agent Demonstration
 
 
-## Live Demo
-🚀 Try it live: https://thiagu213009-intelligent-rpa-orchestrator.hf.space
+## 🚀 Live Demo
+
+Try the live application: 
+👉 **[thiagu213009-intelligent-rpa-orchestrator.hf.space](https://thiagu213009-intelligent-rpa-orchestrator.hf.space)**
+
+
+
+## Questions to Try
+
+Step 1: "What is the CFO approval limit?"
+        → Shows RAG working from policy PDF
+
+Step 2: "Process IBM invoice for £8,000"
+        → Shows auto-approval working
+
+Step 3: "How many sick days am I entitled to?"
+        → Shows HR agent + RAG working
+
+Step 4: "Process Accenture invoice for £85,000"
+        → Shows human-in-the-loop CFO approval
+
+Step 5: "Lost my invoice not sure what to do"
+        → Shows intelligent escalation routing
